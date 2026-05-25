@@ -17,6 +17,9 @@ CC-Session-Logs/
 # Firebase 本機專案綁定
 .firebaserc
 
+# 已合併至 index.html，不再使用
+display.html
+
 # 系統檔
 .DS_Store
 Thumbs.db

@@ -3,217 +3,406 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>文字雲 — 輸入關鍵字</title>
+  <title>即時文字雲 — ANESTHESIA SIMULATION</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 1.25rem;
+      background: rgba(15,23,42,0.95);
+      border-bottom: 1px solid #1e293b;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 0.6rem; }
+    .header-left h1 { font-size: 1rem; font-weight: 600; color: #cbd5e1; }
+
+    .badge {
+      border-radius: 999px;
+      padding: 0.2rem 0.65rem;
+      font-size: 0.75rem;
+    }
+    .badge-live {
+      background: #0f2d1a;
+      border: 1px solid #166534;
+      color: #4ade80;
+    }
+    .badge-live::before { content: '● '; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .header-right { display: flex; align-items: center; gap: 0.75rem; }
+    .count-text { font-size: 0.8rem; color: #64748b; }
+
+    .btn {
+      padding: 0.4rem 0.9rem;
+      border-radius: 0.5rem;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #334155; color: #e2e8f0; }
+    .btn-danger { border-color: #7f1d1d; color: #f87171; }
+    .btn-danger:hover { background: #450a0a; }
+
+    /* ── 主體佈局 ── */
+    .main-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      overflow: hidden;
+    }
+
+    /* ── 文字雲區 ── */
+    .cloud-area {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #wordcloud-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #empty-state {
+      position: absolute;
+      inset: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #0f172a;
-      color: #f1f5f9;
-      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-      padding: 1.5rem;
+      gap: 0.75rem;
+      color: #1e293b;
+      pointer-events: none;
+    }
+    #empty-state .big-icon { font-size: 4rem; opacity: 0.5; }
+    #empty-state p { font-size: 1rem; }
+
+    /* ── 側邊欄 ── */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #1e293b;
+      overflow-y: auto;
+      gap: 0;
     }
 
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 1.25rem;
-      padding: 2.5rem 2rem;
+    .sidebar-section {
+      padding: 1.1rem 1.1rem 1rem;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      margin-bottom: 0.85rem;
+    }
+
+    /* 輸入表單 */
+    #input-state input[type="text"] {
       width: 100%;
-      max-width: 440px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    }
-
-    .icon { font-size: 3rem; margin-bottom: 0.75rem; }
-
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #e2e8f0;
-      margin-bottom: 0.4rem;
-    }
-
-    .subtitle {
-      font-size: 0.9rem;
-      color: #94a3b8;
-      margin-bottom: 2rem;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 0.85rem 1.1rem;
-      border-radius: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 0.6rem;
       border: 2px solid #334155;
       background: #0f172a;
       color: #f1f5f9;
-      font-size: 1.1rem;
+      font-size: 1rem;
       outline: none;
       transition: border-color 0.2s;
-      margin-bottom: 0.75rem;
-      text-align: center;
-      letter-spacing: 0.03em;
+      margin-bottom: 0.5rem;
     }
-
-    input[type="text"]:focus { border-color: #6366f1; }
-    input[type="text"]::placeholder { color: #475569; }
+    #input-state input[type="text"]:focus { border-color: #6366f1; }
+    #input-state input[type="text"]::placeholder { color: #334155; }
 
     .char-count {
-      font-size: 0.78rem;
-      color: #475569;
+      font-size: 0.72rem;
+      color: #334155;
       text-align: right;
-      margin-bottom: 1.2rem;
+      margin-bottom: 0.6rem;
     }
 
-    button[type="submit"] {
+    .btn-submit {
       width: 100%;
-      padding: 0.9rem;
-      border-radius: 0.75rem;
+      padding: 0.7rem;
+      border-radius: 0.6rem;
       border: none;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color: white;
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
       transition: opacity 0.2s, transform 0.1s;
     }
+    .btn-submit:hover { opacity: 0.9; }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    button[type="submit"]:hover { opacity: 0.9; }
-    button[type="submit"]:active { transform: scale(0.98); }
-    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .message {
-      margin-top: 1.2rem;
-      min-height: 2rem;
-      font-size: 0.95rem;
-      border-radius: 0.5rem;
-      padding: 0.5rem 1rem;
-      transition: all 0.3s;
-    }
-
-    .message.success {
-      background: #052e16;
-      color: #4ade80;
-      border: 1px solid #166534;
-    }
-
-    .message.error {
-      background: #2d0a0a;
-      color: #f87171;
-      border: 1px solid #7f1d1d;
-    }
-
-    .divider {
-      border: none;
-      border-top: 1px solid #1e293b;
-      margin: 2rem 0 1.5rem;
-    }
-
-    .display-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      color: #94a3b8;
-      text-decoration: none;
-      font-size: 0.88rem;
-      transition: color 0.2s;
-    }
-    .display-link:hover { color: #6366f1; }
-
-    .counter {
+    .msg {
       margin-top: 0.6rem;
-      font-size: 0.8rem;
-      color: #475569;
+      font-size: 0.82rem;
+      border-radius: 0.45rem;
+      padding: 0.4rem 0.75rem;
+      min-height: 1.8rem;
     }
+    .msg.success { background:#052e16; color:#4ade80; border:1px solid #166534; }
+    .msg.error   { background:#2d0a0a; color:#f87171; border:1px solid #7f1d1d; }
 
     /* 已送出狀態 */
-    #submitted-state {
-      display: none;
-    }
+    #submitted-state { text-align: center; }
 
-    .submitted-icon {
-      font-size: 3.5rem;
-      margin-bottom: 0.75rem;
-      animation: pop 0.4s ease;
-    }
-
-    @keyframes pop {
-      0%   { transform: scale(0.5); opacity: 0; }
-      70%  { transform: scale(1.15); }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    .submitted-word {
+    .submitted-chip {
       display: inline-block;
-      margin: 0.75rem 0 1rem;
-      padding: 0.5rem 1.5rem;
+      margin: 0.3rem 0 0.6rem;
+      padding: 0.45rem 1.2rem;
       background: #0f172a;
       border: 2px solid #6366f1;
       border-radius: 999px;
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       font-weight: 700;
       color: #a5b4fc;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
 
-    .submitted-hint {
-      font-size: 0.85rem;
+    .submitted-hint { font-size: 0.78rem; color: #475569; }
+
+    /* 排行榜 */
+    .ranking-section { flex: 1; padding: 1rem 1.1rem; }
+
+    #rankingList {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    #rankingList li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 0.7rem;
+      background: #1e293b;
+      border-radius: 0.5rem;
+      font-size: 0.88rem;
+      transition: background 0.15s;
+    }
+
+    .rank-no {
+      width: 1.4rem;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
       color: #475569;
-      margin-bottom: 0.25rem;
+      flex-shrink: 0;
+    }
+    .rank-no.gold   { color: #fbbf24; }
+    .rank-no.silver { color: #94a3b8; }
+    .rank-no.bronze { color: #b45309; }
+
+    .rank-word {
+      flex: 1;
+      color: #e2e8f0;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-bar-wrap {
+      flex-shrink: 0;
+      width: 60px;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .rank-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: #6366f1;
+      transition: width 0.4s ease;
+      min-width: 3px;
+    }
+
+    .rank-count {
+      font-size: 0.75rem;
+      color: #64748b;
+      width: 1.4rem;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── 密碼對話框 ── */
+    #pw-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #pw-overlay.show { display: flex; }
+
+    .pw-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 1rem;
+      padding: 2rem;
+      text-align: center;
+      max-width: 300px;
+      width: 90%;
+    }
+    .pw-box h3 { margin-bottom: 0.4rem; font-size: 1.05rem; }
+    .pw-box p  { color: #64748b; font-size: 0.85rem; margin-bottom: 1rem; }
+
+    .pw-input {
+      width: 100%;
+      padding: 0.65rem;
+      border-radius: 0.6rem;
+      border: 2px solid #334155;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-size: 1.1rem;
+      text-align: center;
+      letter-spacing: 0.2em;
+      outline: none;
+      margin-bottom: 0.5rem;
+      transition: border-color 0.2s;
+    }
+    .pw-input:focus { border-color: #6366f1; }
+    .pw-input.error { border-color: #ef4444; animation: shake 0.3s ease; }
+
+    .pw-error {
+      font-size: 0.78rem;
+      color: #f87171;
+      min-height: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    @keyframes shake {
+      0%,100%{ transform:translateX(0) }
+      25%    { transform:translateX(-6px) }
+      75%    { transform:translateX(6px) }
+    }
+
+    .pw-btns { display: flex; gap: 0.6rem; }
+    .pw-btns button { flex: 1; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: #94a3b8; cursor: pointer; font-size: 0.85rem; transition: all 0.15s; }
+    .pw-btns button:hover { background: #1e293b; color: #e2e8f0; }
+    .pw-btns .pw-confirm { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+    .pw-btns .pw-confirm:hover { background: #7f1d1d; }
+
+    /* ── 手機版 ── */
+    @media (max-width: 640px) {
+      body { overflow-y: auto; height: auto; }
+      .main-layout { grid-template-columns: 1fr; }
+      .cloud-area { height: 55vw; min-height: 220px; }
+      .sidebar { border-left: none; border-top: 1px solid #1e293b; }
+      #rankingList li { font-size: 0.82rem; }
     }
   </style>
 </head>
 <body>
-  <div class="card">
 
-    <!-- 輸入狀態 -->
-    <div id="input-state">
-      <div class="icon">💬</div>
-      <h1>輸入你的關鍵字</h1>
-      <p class="subtitle">輸入一個與今天課程相關的詞彙</p>
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <h1>☁️ 即時文字雲</h1>
+      <span class="badge badge-live" id="statusBadge">連線中…</span>
+    </div>
+    <div class="header-right">
+      <span class="count-text" id="countBadge">0 筆</span>
+      <button class="btn btn-danger" id="clearBtn">🔄 開新活動</button>
+    </div>
+  </header>
 
-      <form id="wordForm">
-        <input
-          type="text"
-          id="wordInput"
-          placeholder="例如：propofol"
-          maxlength="20"
-          autocomplete="off"
-          autofocus
-        />
-        <div class="char-count"><span id="charCount">0</span> / 20</div>
-        <button type="submit" id="submitBtn">送出 →</button>
-      </form>
+  <!-- 主體 -->
+  <div class="main-layout">
 
-      <div class="message" id="message"></div>
-      <div class="counter" id="counter"></div>
+    <!-- 文字雲 -->
+    <div class="cloud-area">
+      <canvas id="wordcloud-canvas"></canvas>
+      <div id="empty-state">
+        <div class="big-icon">☁️</div>
+        <p>等待關鍵字…</p>
+      </div>
     </div>
 
-    <!-- 已送出狀態 -->
-    <div id="submitted-state">
-      <div class="submitted-icon">✅</div>
-      <h1>已送出！</h1>
-      <p class="subtitle">你的關鍵字</p>
-      <div class="submitted-word" id="submittedWord"></div>
-      <p class="submitted-hint">已記錄在文字雲中</p>
-      <div class="counter" id="counter2"></div>
-    </div>
+    <!-- 側邊欄 -->
+    <aside class="sidebar">
 
-    <hr class="divider" />
-    <a href="display.html" class="display-link">
-      ☁️ 查看即時文字雲
-    </a>
+      <!-- 輸入框（未送出） -->
+      <div class="sidebar-section" id="input-state">
+        <div class="section-title">輸入關鍵字</div>
+        <form id="wordForm">
+          <input type="text" id="wordInput" placeholder="例如：propofol"
+                 maxlength="20" autocomplete="off" autofocus />
+          <div class="char-count"><span id="charCount">0</span> / 20</div>
+          <button class="btn-submit" type="submit" id="submitBtn">送出 →</button>
+        </form>
+        <div class="msg" id="msgEl"></div>
+      </div>
+
+      <!-- 已送出狀態 -->
+      <div class="sidebar-section" id="submitted-state" style="display:none">
+        <div class="section-title">你的關鍵字</div>
+        <div style="text-align:center">
+          <div class="submitted-chip" id="submittedWord"></div>
+          <p class="submitted-hint">已記錄在文字雲中 ✅</p>
+        </div>
+      </div>
+
+      <!-- 排行榜 -->
+      <div class="ranking-section">
+        <div class="section-title">即時排行</div>
+        <ol id="rankingList"></ol>
+      </div>
+
+    </aside>
   </div>
 
+  <!-- 密碼對話框 -->
+  <div id="pw-overlay">
+    <div class="pw-box">
+      <h3>🔐 老師驗證</h3>
+      <p>輸入老師密碼以開始新活動</p>
+      <input type="password" id="pwInput" class="pw-input"
+             placeholder="請輸入密碼" maxlength="20" autocomplete="off" />
+      <div class="pw-error" id="pwError"></div>
+      <div class="pw-btns">
+        <button id="cancelBtn">取消</button>
+        <button class="pw-confirm" id="confirmBtn">確定開始</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-    import { getFirestore, collection, addDoc, getCountFromServer, serverTimestamp, getDoc, doc }
-      from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+    import {
+      getFirestore, collection, addDoc, onSnapshot,
+      getDocs, deleteDoc, doc, setDoc, getDoc, serverTimestamp, getCountFromServer
+    } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyA7-V2Nr2caPLSkWaJ1njY54IcWn1Wc6-s",
@@ -224,103 +413,239 @@
       appId: "1:1045190313519:web:12abce4773d2238c6428da"
     };
 
+    const TEACHER_PW  = '738';
+    const WORD_KEY    = 'wordcloud_submitted_word';
+    const SESSION_KEY = 'wordcloud_session_id';
+
+    const COLORS = ['#818cf8','#a78bfa','#34d399','#60a5fa','#f472b6','#fb923c','#facc15','#2dd4bf'];
+
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
     const col = collection(db, 'wordcloud_words');
 
-    const form           = document.getElementById('wordForm');
-    const input          = document.getElementById('wordInput');
-    const submitBtn      = document.getElementById('submitBtn');
-    const messageEl      = document.getElementById('message');
-    const counterEl      = document.getElementById('counter');
-    const counter2El     = document.getElementById('counter2');
-    const charCount      = document.getElementById('charCount');
-    const inputState     = document.getElementById('input-state');
-    const submittedState = document.getElementById('submitted-state');
-    const submittedWord  = document.getElementById('submittedWord');
+    // DOM
+    const canvas        = document.getElementById('wordcloud-canvas');
+    const wrapper       = document.querySelector('.cloud-area');
+    const emptyState    = document.getElementById('empty-state');
+    const statusBadge   = document.getElementById('statusBadge');
+    const countBadge    = document.getElementById('countBadge');
+    const inputState    = document.getElementById('input-state');
+    const submittedState= document.getElementById('submitted-state');
+    const submittedWord = document.getElementById('submittedWord');
+    const wordForm      = document.getElementById('wordForm');
+    const wordInput     = document.getElementById('wordInput');
+    const submitBtn     = document.getElementById('submitBtn');
+    const msgEl         = document.getElementById('msgEl');
+    const charCount     = document.getElementById('charCount');
+    const rankingList   = document.getElementById('rankingList');
+    const clearBtn      = document.getElementById('clearBtn');
+    const pwOverlay     = document.getElementById('pw-overlay');
+    const pwInput       = document.getElementById('pwInput');
+    const pwError       = document.getElementById('pwError');
+    const cancelBtn     = document.getElementById('cancelBtn');
+    const confirmBtn    = document.getElementById('confirmBtn');
 
-    const STORAGE_KEY     = 'wordcloud_submitted_word';
-    const SESSION_KEY     = 'wordcloud_session_id';
+    // ── Canvas 尺寸 ──
+    function resizeCanvas() {
+      canvas.width  = wrapper.clientWidth;
+      canvas.height = wrapper.clientHeight;
+    }
+    resizeCanvas();
 
-    // 取得目前總筆數
-    async function refreshCount(targetEl) {
-      try {
-        const snap = await getCountFromServer(col);
-        targetEl.textContent = `目前已收到 ${snap.data().count} 筆關鍵字`;
-      } catch (_) {}
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        resizeCanvas();
+        if (lastWords.length) render(lastWords);
+      }, 150);
+    });
+
+    // ── 文字雲渲染 ──
+    let lastWords = [];
+
+    function render(words) {
+      if (!words.length) { emptyState.style.display = 'flex'; return; }
+      emptyState.style.display = 'none';
+
+      const freq = {};
+      words.forEach(w => { const k = w.toLowerCase(); freq[k] = (freq[k]||0)+1; });
+
+      const entries  = Object.entries(freq).sort((a,b) => b[1]-a[1]);
+      const maxFreq  = entries[0][1];
+      const area     = canvas.width * canvas.height;
+      const base     = Math.max(18, Math.min(70, Math.sqrt(area)/12));
+
+      const list = entries.map(([word, count]) => [
+        word,
+        Math.round(base * 0.5 + (count / maxFreq) * base * 2)
+      ]);
+
+      WordCloud(canvas, {
+        list,
+        gridSize      : Math.round(canvas.width / 80),
+        fontFamily    : "'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif",
+        color         : () => COLORS[Math.floor(Math.random() * COLORS.length)],
+        rotateRatio   : 0.25,
+        rotationSteps : 2,
+        backgroundColor:'transparent',
+        drawOutOfBound: false,
+        shrinkToFit   : true,
+        clearCanvas   : true,
+      });
+
+      // ── 即時排行榜 ──
+      rankingList.innerHTML = '';
+      const top = entries.slice(0, 15);
+      top.forEach(([word, count], i) => {
+        const pct = Math.round((count / maxFreq) * 100);
+        const li  = document.createElement('li');
+
+        const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+        const medal     = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
+
+        li.innerHTML = `
+          <span class="rank-no ${rankClass}">${medal}</span>
+          <span class="rank-word">${word}</span>
+          <span class="rank-bar-wrap">
+            <span class="rank-bar" style="width:${pct}%"></span>
+          </span>
+          <span class="rank-count">${count}</span>
+        `;
+        rankingList.appendChild(li);
+      });
     }
 
-    // 切換到「已送出」畫面
-    function showSubmittedState(word) {
-      inputState.style.display = 'none';
-      submittedState.style.display = 'block';
-      submittedWord.textContent = word;
-      refreshCount(counter2El);
-    }
+    // ── Firestore 即時監聽 ──
+    onSnapshot(col, snapshot => {
+      statusBadge.textContent = '即時更新';
+      statusBadge.className   = 'badge badge-live';
 
-    // 頁面載入：從 Firestore 取得目前 session ID，與 localStorage 比對
+      const words = [];
+      snapshot.forEach(d => { const w = d.data().word; if (w) words.push(w.trim()); });
+
+      lastWords = words;
+      countBadge.textContent = `${words.length} 筆`;
+      render(words);
+    }, err => {
+      statusBadge.textContent = '連線失敗';
+      statusBadge.className   = 'badge';
+      console.error(err);
+    });
+
+    // ── Session 檢查 ──
+    let currentSessionId = 'default';
+
     async function checkSession() {
-      let currentSessionId = 'default';
       try {
-        const sessionDoc = await getDoc(doc(db, 'sessions', 'current'));
-        if (sessionDoc.exists()) {
-          currentSessionId = sessionDoc.data().sessionId;
-        }
-      } catch (_) {}
+        const snap = await getDoc(doc(db, 'sessions', 'current'));
+        if (snap.exists()) currentSessionId = snap.data().sessionId;
+      } catch(_) {}
 
-      const savedWord      = localStorage.getItem(STORAGE_KEY);
-      const savedSessionId = localStorage.getItem(SESSION_KEY);
+      const savedWord = localStorage.getItem(WORD_KEY);
+      const savedSid  = localStorage.getItem(SESSION_KEY);
 
-      if (savedWord && savedSessionId === currentSessionId) {
-        // 同一場次已送出 → 顯示已送出畫面
-        showSubmittedState(savedWord);
+      if (savedWord && savedSid === currentSessionId) {
+        showSubmitted(savedWord);
       } else {
-        // 新場次或尚未送出 → 清除舊記錄，顯示輸入表單
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(WORD_KEY);
         localStorage.removeItem(SESSION_KEY);
-        // 暫存當下 sessionId 供送出時使用
-        window._currentSessionId = currentSessionId;
-        refreshCount(counterEl);
       }
     }
     checkSession();
 
-    // 即時字數
-    input.addEventListener('input', () => {
-      charCount.textContent = input.value.length;
-    });
-
-    function showMessage(text, type) {
-      messageEl.textContent = text;
-      messageEl.className = `message ${type}`;
-      setTimeout(() => {
-        messageEl.textContent = '';
-        messageEl.className = 'message';
-      }, 3000);
+    function showSubmitted(word) {
+      inputState.style.display    = 'none';
+      submittedState.style.display = 'block';
+      submittedWord.textContent   = word;
     }
 
-    form.addEventListener('submit', async (e) => {
+    // ── 輸入表單 ──
+    wordInput.addEventListener('input', () => {
+      charCount.textContent = wordInput.value.length;
+    });
+
+    function showMsg(text, type) {
+      msgEl.textContent  = text;
+      msgEl.className    = `msg ${type}`;
+      setTimeout(() => { msgEl.textContent = ''; msgEl.className = 'msg'; }, 3000);
+    }
+
+    wordForm.addEventListener('submit', async e => {
       e.preventDefault();
-      const word = input.value.trim();
+      const word = wordInput.value.trim();
       if (!word) return;
 
-      submitBtn.disabled = true;
+      submitBtn.disabled    = true;
       submitBtn.textContent = '送出中…';
 
       try {
-        await addDoc(col, {
-          word: word,
-          created_at: serverTimestamp()
-        });
-        // 記錄 word + sessionId 到 localStorage
-        localStorage.setItem(STORAGE_KEY, word);
-        localStorage.setItem(SESSION_KEY, window._currentSessionId || 'default');
-        showSubmittedState(word);
-      } catch (err) {
-        showMessage('❌ 送出失敗，請再試一次', 'error');
-        console.error(err);
-        submitBtn.disabled = false;
+        await addDoc(col, { word, created_at: serverTimestamp() });
+        localStorage.setItem(WORD_KEY, word);
+        localStorage.setItem(SESSION_KEY, currentSessionId);
+        showSubmitted(word);
+      } catch(err) {
+        showMsg('❌ 送出失敗，請再試一次', 'error');
+        submitBtn.disabled    = false;
         submitBtn.textContent = '送出 →';
+      }
+    });
+
+    // ── 密碼對話框 ──
+    clearBtn.addEventListener('click', () => {
+      pwInput.value = '';
+      pwError.textContent = '';
+      pwInput.classList.remove('error');
+      pwOverlay.classList.add('show');
+      setTimeout(() => pwInput.focus(), 100);
+    });
+
+    function closePw() {
+      pwOverlay.classList.remove('show');
+      pwInput.value = '';
+      pwError.textContent = '';
+      pwInput.classList.remove('error');
+    }
+
+    cancelBtn.addEventListener('click', closePw);
+    pwOverlay.addEventListener('click', e => { if (e.target === pwOverlay) closePw(); });
+    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') confirmBtn.click(); });
+
+    confirmBtn.addEventListener('click', async () => {
+      if (pwInput.value.trim() !== TEACHER_PW) {
+        pwInput.classList.add('error');
+        pwError.textContent = '密碼錯誤，請再試一次';
+        pwInput.value = '';
+        setTimeout(() => pwInput.classList.remove('error'), 400);
+        pwInput.focus();
+        return;
+      }
+
+      closePw();
+      confirmBtn.disabled    = true;
+      confirmBtn.textContent = '處理中…';
+
+      try {
+        const snap    = await getDocs(col);
+        const deletes = snap.docs.map(d => deleteDoc(doc(db, 'wordcloud_words', d.id)));
+        await Promise.all(deletes);
+        await setDoc(doc(db, 'sessions', 'current'), { sessionId: Date.now().toString() });
+
+        // 重置輸入框（老師自己的裝置也能重新送出）
+        currentSessionId = localStorage.getItem(SESSION_KEY) !== Date.now().toString()
+          ? Date.now().toString() : currentSessionId;
+        localStorage.removeItem(WORD_KEY);
+        localStorage.removeItem(SESSION_KEY);
+        inputState.style.display     = 'block';
+        submittedState.style.display = 'none';
+        wordInput.value = '';
+        charCount.textContent = '0';
+        checkSession();
+      } catch(err) {
+        alert('操作失敗：' + err.message);
+      } finally {
+        confirmBtn.disabled    = false;
+        confirmBtn.textContent = '確定開始';
       }
     });
   </script>
