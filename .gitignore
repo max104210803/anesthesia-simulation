@@ -6,6 +6,10 @@ firestore-debug.log
 # MCP 設定（含本機路徑，不要公開）
 .mcp.json
 
+# 本機專案筆記（不公開）
+CLAUDE.md
+CC-Session-Logs/
+
 # 系統檔
 .DS_Store
 Thumbs.db
