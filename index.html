@@ -130,29 +130,79 @@
       font-size: 0.8rem;
       color: #475569;
     }
+
+    /* 已送出狀態 */
+    #submitted-state {
+      display: none;
+    }
+
+    .submitted-icon {
+      font-size: 3.5rem;
+      margin-bottom: 0.75rem;
+      animation: pop 0.4s ease;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .submitted-word {
+      display: inline-block;
+      margin: 0.75rem 0 1rem;
+      padding: 0.5rem 1.5rem;
+      background: #0f172a;
+      border: 2px solid #6366f1;
+      border-radius: 999px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #a5b4fc;
+      letter-spacing: 0.05em;
+    }
+
+    .submitted-hint {
+      font-size: 0.85rem;
+      color: #475569;
+      margin-bottom: 0.25rem;
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">💬</div>
-    <h1>輸入你的關鍵字</h1>
-    <p class="subtitle">輸入一個與今天課程相關的詞彙</p>
 
-    <form id="wordForm">
-      <input
-        type="text"
-        id="wordInput"
-        placeholder="例如：propofol"
-        maxlength="20"
-        autocomplete="off"
-        autofocus
-      />
-      <div class="char-count"><span id="charCount">0</span> / 20</div>
-      <button type="submit" id="submitBtn">送出 →</button>
-    </form>
+    <!-- 輸入狀態 -->
+    <div id="input-state">
+      <div class="icon">💬</div>
+      <h1>輸入你的關鍵字</h1>
+      <p class="subtitle">輸入一個與今天課程相關的詞彙</p>
 
-    <div class="message" id="message"></div>
-    <div class="counter" id="counter"></div>
+      <form id="wordForm">
+        <input
+          type="text"
+          id="wordInput"
+          placeholder="例如：propofol"
+          maxlength="20"
+          autocomplete="off"
+          autofocus
+        />
+        <div class="char-count"><span id="charCount">0</span> / 20</div>
+        <button type="submit" id="submitBtn">送出 →</button>
+      </form>
+
+      <div class="message" id="message"></div>
+      <div class="counter" id="counter"></div>
+    </div>
+
+    <!-- 已送出狀態 -->
+    <div id="submitted-state">
+      <div class="submitted-icon">✅</div>
+      <h1>已送出！</h1>
+      <p class="subtitle">你的關鍵字</p>
+      <div class="submitted-word" id="submittedWord"></div>
+      <p class="submitted-hint">已記錄在文字雲中</p>
+      <div class="counter" id="counter2"></div>
+    </div>
 
     <hr class="divider" />
     <a href="display.html" class="display-link">
@@ -178,26 +228,47 @@
     const db  = getFirestore(app);
     const col = collection(db, 'wordcloud_words');
 
-    const form       = document.getElementById('wordForm');
-    const input      = document.getElementById('wordInput');
-    const submitBtn  = document.getElementById('submitBtn');
-    const messageEl  = document.getElementById('message');
-    const counterEl  = document.getElementById('counter');
-    const charCount  = document.getElementById('charCount');
+    const form           = document.getElementById('wordForm');
+    const input          = document.getElementById('wordInput');
+    const submitBtn      = document.getElementById('submitBtn');
+    const messageEl      = document.getElementById('message');
+    const counterEl      = document.getElementById('counter');
+    const counter2El     = document.getElementById('counter2');
+    const charCount      = document.getElementById('charCount');
+    const inputState     = document.getElementById('input-state');
+    const submittedState = document.getElementById('submitted-state');
+    const submittedWord  = document.getElementById('submittedWord');
+
+    const STORAGE_KEY = 'wordcloud_submitted_word';
+
+    // 取得目前總筆數
+    async function refreshCount(targetEl) {
+      try {
+        const snap = await getCountFromServer(col);
+        targetEl.textContent = `目前已收到 ${snap.data().count} 筆關鍵字`;
+      } catch (_) {}
+    }
+
+    // 切換到「已送出」畫面
+    function showSubmittedState(word) {
+      inputState.style.display = 'none';
+      submittedState.style.display = 'block';
+      submittedWord.textContent = word;
+      refreshCount(counter2El);
+    }
+
+    // 頁面載入時檢查 localStorage
+    const savedWord = localStorage.getItem(STORAGE_KEY);
+    if (savedWord) {
+      showSubmittedState(savedWord);
+    } else {
+      refreshCount(counterEl);
+    }
 
     // 即時字數
     input.addEventListener('input', () => {
       charCount.textContent = input.value.length;
     });
-
-    // 取得目前總筆數
-    async function refreshCount() {
-      try {
-        const snap = await getCountFromServer(col);
-        counterEl.textContent = `目前已收到 ${snap.data().count} 筆關鍵字`;
-      } catch (_) {}
-    }
-    refreshCount();
 
     function showMessage(text, type) {
       messageEl.textContent = text;
@@ -221,14 +292,12 @@
           word: word,
           created_at: serverTimestamp()
         });
-        showMessage(`✅ 「${word}」已送出！`, 'success');
-        input.value = '';
-        charCount.textContent = '0';
-        refreshCount();
+        // 記錄到 localStorage，防止重複送出
+        localStorage.setItem(STORAGE_KEY, word);
+        showSubmittedState(word);
       } catch (err) {
         showMessage('❌ 送出失敗，請再試一次', 'error');
         console.error(err);
-      } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = '送出 →';
       }
