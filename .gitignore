@@ -13,6 +13,9 @@ CC-Session-Logs/
 # Claude Code 本機設定
 .claude/
 
+# Firebase 本機專案綁定
+.firebaserc
+
 # 系統檔
 .DS_Store
 Thumbs.db
