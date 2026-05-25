@@ -1,0 +1,11 @@
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# MCP 設定（含本機路徑，不要公開）
+.mcp.json
+
+# 系統檔
+.DS_Store
+Thumbs.db
