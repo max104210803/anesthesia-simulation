@@ -506,12 +506,13 @@
 
         li.innerHTML = `
           <span class="rank-no ${rankClass}">${medal}</span>
-          <span class="rank-word">${word}</span>
+          <span class="rank-word"></span>
           <span class="rank-bar-wrap">
             <span class="rank-bar" style="width:${pct}%"></span>
           </span>
           <span class="rank-count">${count}</span>
         `;
+        li.querySelector('.rank-word').textContent = word;
         rankingList.appendChild(li);
       });
     }

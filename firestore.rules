@@ -5,7 +5,11 @@ service cloud.firestore {
     // 你的第一個集合：任何人可讀寫
     // 之後新增工具時在這裡加更多 match 區塊
     match /wordcloud_words/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if request.resource.data.word is string
+                    && request.resource.data.word.size() > 0
+                    && request.resource.data.word.size() <= 20;
+      allow delete: if true;
     }
 
     // 場次管理（老師開新活動時更新）
