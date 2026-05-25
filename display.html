@@ -156,11 +156,39 @@
       width: 90%;
     }
     .confirm-box h3 { margin-bottom: 0.5rem; font-size: 1.1rem; }
-    .confirm-box p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .confirm-box p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem; }
     .confirm-box .btn-row { display: flex; gap: 0.75rem; justify-content: center; }
     .confirm-box .btn-row button { flex: 1; padding: 0.6rem; }
     .confirm-box .btn-confirm { background: #7f1d1d; border-color: #991b1b; color: #fca5a5; }
     .confirm-box .btn-confirm:hover { background: #991b1b; }
+
+    .pw-input {
+      width: 100%;
+      padding: 0.65rem 1rem;
+      border-radius: 0.6rem;
+      border: 2px solid #334155;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-size: 1.1rem;
+      text-align: center;
+      letter-spacing: 0.2em;
+      outline: none;
+      margin-bottom: 0.6rem;
+      transition: border-color 0.2s;
+    }
+    .pw-input:focus { border-color: #6366f1; }
+    .pw-input.error { border-color: #ef4444; animation: shake 0.3s ease; }
+    .pw-error {
+      font-size: 0.8rem;
+      color: #f87171;
+      min-height: 1.2rem;
+      margin-bottom: 0.8rem;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%       { transform: translateX(-6px); }
+      75%       { transform: translateX(6px); }
+    }
   </style>
 </head>
 <body>
@@ -190,8 +218,17 @@
   <!-- 開新活動確認對話框 -->
   <div id="confirm-overlay">
     <div class="confirm-box">
-      <h3>開始新活動？</h3>
-      <p>將清除所有關鍵字，並讓學生可以重新送出。</p>
+      <h3>🔐 老師驗證</h3>
+      <p>輸入老師密碼以開始新活動</p>
+      <input
+        type="password"
+        id="pwInput"
+        class="pw-input"
+        placeholder="請輸入密碼"
+        maxlength="20"
+        autocomplete="off"
+      />
+      <div class="pw-error" id="pwError"></div>
       <div class="btn-row">
         <button id="cancelBtn">取消</button>
         <button class="btn-confirm" id="confirmClearBtn">確定開始</button>
@@ -225,10 +262,13 @@
     const emptyState = document.getElementById('empty-state');
     const countBadge = document.getElementById('countBadge');
     const statusBadge = document.getElementById('statusBadge');
-    const clearBtn   = document.getElementById('clearBtn');
-    const overlay    = document.getElementById('confirm-overlay');
-    const cancelBtn  = document.getElementById('cancelBtn');
+    const clearBtn        = document.getElementById('clearBtn');
+    const overlay         = document.getElementById('confirm-overlay');
+    const cancelBtn       = document.getElementById('cancelBtn');
     const confirmClearBtn = document.getElementById('confirmClearBtn');
+    const pwInput         = document.getElementById('pwInput');
+    const pwError         = document.getElementById('pwError');
+    const TEACHER_PW      = '738';
 
     // 調整 canvas 尺寸
     function resizeCanvas() {
@@ -311,19 +351,48 @@
       console.error(err);
     });
 
-    // 清除功能
+    // 開啟對話框
     clearBtn.addEventListener('click', () => {
+      pwInput.value = '';
+      pwError.textContent = '';
+      pwInput.classList.remove('error');
       overlay.classList.add('show');
-    });
-    cancelBtn.addEventListener('click', () => {
-      overlay.classList.remove('show');
-    });
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.remove('show');
+      setTimeout(() => pwInput.focus(), 100);
     });
 
-    confirmClearBtn.addEventListener('click', async () => {
+    // 關閉對話框
+    function closeOverlay() {
       overlay.classList.remove('show');
+      pwInput.value = '';
+      pwError.textContent = '';
+      pwInput.classList.remove('error');
+    }
+    cancelBtn.addEventListener('click', closeOverlay);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeOverlay();
+    });
+
+    // 按 Enter 也能送出
+    pwInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirmClearBtn.click();
+    });
+
+    // 確認密碼並執行
+    confirmClearBtn.addEventListener('click', async () => {
+      const entered = pwInput.value.trim();
+
+      // 密碼錯誤
+      if (entered !== TEACHER_PW) {
+        pwInput.classList.add('error');
+        pwError.textContent = '密碼錯誤，請再試一次';
+        pwInput.value = '';
+        setTimeout(() => pwInput.classList.remove('error'), 400);
+        pwInput.focus();
+        return;
+      }
+
+      // 密碼正確，執行開新活動
+      closeOverlay();
       confirmClearBtn.disabled = true;
       confirmClearBtn.textContent = '處理中…';
       try {
