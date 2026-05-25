@@ -8,6 +8,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 場次管理（老師開新活動時更新）
+    match /sessions/{document} {
+      allow read, write: if true;
+    }
+
     // 其他集合預設禁止存取
     match /{document=**} {
       allow read, write: if false;

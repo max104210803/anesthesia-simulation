@@ -212,7 +212,7 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-    import { getFirestore, collection, addDoc, getCountFromServer, serverTimestamp }
+    import { getFirestore, collection, addDoc, getCountFromServer, serverTimestamp, getDoc, doc }
       from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
     const firebaseConfig = {
@@ -239,7 +239,8 @@
     const submittedState = document.getElementById('submitted-state');
     const submittedWord  = document.getElementById('submittedWord');
 
-    const STORAGE_KEY = 'wordcloud_submitted_word';
+    const STORAGE_KEY     = 'wordcloud_submitted_word';
+    const SESSION_KEY     = 'wordcloud_session_id';
 
     // 取得目前總筆數
     async function refreshCount(targetEl) {
@@ -257,13 +258,32 @@
       refreshCount(counter2El);
     }
 
-    // 頁面載入時檢查 localStorage
-    const savedWord = localStorage.getItem(STORAGE_KEY);
-    if (savedWord) {
-      showSubmittedState(savedWord);
-    } else {
-      refreshCount(counterEl);
+    // 頁面載入：從 Firestore 取得目前 session ID，與 localStorage 比對
+    async function checkSession() {
+      let currentSessionId = 'default';
+      try {
+        const sessionDoc = await getDoc(doc(db, 'sessions', 'current'));
+        if (sessionDoc.exists()) {
+          currentSessionId = sessionDoc.data().sessionId;
+        }
+      } catch (_) {}
+
+      const savedWord      = localStorage.getItem(STORAGE_KEY);
+      const savedSessionId = localStorage.getItem(SESSION_KEY);
+
+      if (savedWord && savedSessionId === currentSessionId) {
+        // 同一場次已送出 → 顯示已送出畫面
+        showSubmittedState(savedWord);
+      } else {
+        // 新場次或尚未送出 → 清除舊記錄，顯示輸入表單
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(SESSION_KEY);
+        // 暫存當下 sessionId 供送出時使用
+        window._currentSessionId = currentSessionId;
+        refreshCount(counterEl);
+      }
     }
+    checkSession();
 
     // 即時字數
     input.addEventListener('input', () => {
@@ -292,8 +312,9 @@
           word: word,
           created_at: serverTimestamp()
         });
-        // 記錄到 localStorage，防止重複送出
+        // 記錄 word + sessionId 到 localStorage
         localStorage.setItem(STORAGE_KEY, word);
+        localStorage.setItem(SESSION_KEY, window._currentSessionId || 'default');
         showSubmittedState(word);
       } catch (err) {
         showMessage('❌ 送出失敗，請再試一次', 'error');

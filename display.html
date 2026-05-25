@@ -172,7 +172,7 @@
     <div class="header-right">
       <span class="count-badge" id="countBadge">0 筆</span>
       <a href="index.html"><button>＋ 輸入頁</button></a>
-      <button class="danger" id="clearBtn">🗑 清除全部</button>
+      <button class="danger" id="clearBtn">🔄 開新活動</button>
     </div>
   </header>
 
@@ -187,14 +187,14 @@
     </div>
   </div>
 
-  <!-- 清除確認對話框 -->
+  <!-- 開新活動確認對話框 -->
   <div id="confirm-overlay">
     <div class="confirm-box">
-      <h3>確定清除全部？</h3>
-      <p>將刪除所有已提交的關鍵字，此操作無法復原。</p>
+      <h3>開始新活動？</h3>
+      <p>將清除所有關鍵字，並讓學生可以重新送出。</p>
       <div class="btn-row">
         <button id="cancelBtn">取消</button>
-        <button class="btn-confirm" id="confirmClearBtn">確定清除</button>
+        <button class="btn-confirm" id="confirmClearBtn">確定開始</button>
       </div>
     </div>
   </div>
@@ -204,7 +204,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
     import {
       getFirestore, collection, onSnapshot,
-      getDocs, deleteDoc, doc, query, orderBy
+      getDocs, deleteDoc, doc, setDoc
     } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
     const firebaseConfig = {
@@ -325,16 +325,22 @@
     confirmClearBtn.addEventListener('click', async () => {
       overlay.classList.remove('show');
       confirmClearBtn.disabled = true;
-      confirmClearBtn.textContent = '刪除中…';
+      confirmClearBtn.textContent = '處理中…';
       try {
+        // 1. 清除所有關鍵字
         const snap = await getDocs(col);
         const deletes = snap.docs.map(d => deleteDoc(doc(db, 'wordcloud_words', d.id)));
         await Promise.all(deletes);
+
+        // 2. 更新 session ID，讓學生可以重新送出
+        await setDoc(doc(db, 'sessions', 'current'), {
+          sessionId: Date.now().toString()
+        });
       } catch (err) {
-        alert('清除失敗：' + err.message);
+        alert('操作失敗：' + err.message);
       } finally {
         confirmClearBtn.disabled = false;
-        confirmClearBtn.textContent = '確定清除';
+        confirmClearBtn.textContent = '確定開始';
       }
     });
   </script>
