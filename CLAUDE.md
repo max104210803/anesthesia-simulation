@@ -73,6 +73,11 @@
 - [x] Cloud Firestore 啟用（正式版模式）
 - [x] Firestore 安全規則部署（白名單架構）
 - [x] Firebase MCP 連接 Claude Code（✅ CRUD 全驗證）
+- [x] 即時文字雲網頁（index.html + display.html）
+  - 學生輸入頁：https://max104210803.github.io/anesthesia-simulation/
+  - 即時展示頁：https://max104210803.github.io/anesthesia-simulation/display.html
+  - 集合：`wordcloud_words`，欄位：`word`（string）、`created_at`（timestamp）
+  - GitHub：https://github.com/max104210803/anesthesia-simulation
 
 ---
 
